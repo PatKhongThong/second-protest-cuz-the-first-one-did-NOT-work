@@ -54,7 +54,7 @@
       display: flex; align-items: center; gap: 10px;
       font-weight: 700; font-size: 1.05rem; letter-spacing: -0.02em;
       background: linear-gradient(135deg, var(--grad-a), var(--grad-b));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
       user-select: none;
     }
     .logo svg { flex-shrink: 0; }
@@ -195,7 +195,7 @@
     #welcome h1 {
       font-size: 2rem; font-weight: 700; letter-spacing: -0.03em;
       background: linear-gradient(135deg, #fff 0%, var(--text-2) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
     }
     #welcome .sub { font-size: 0.95rem; color: var(--text-2); max-width: 380px; line-height: 1.6; }
 
@@ -436,31 +436,22 @@
         <button class="toolbar-btn" id="fullscreen-btn" title="Fullscreen (F)">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
-            <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+            <line x1="3" y1="21" x2="9" y2="15"/><line x1="15" y1="3" x2="21" y2="9"/>
           </svg>
         </button>
-        <button class="toolbar-btn danger" id="close-btn" title="Close game">
+        <button class="toolbar-btn danger" id="close-btn" title="Close game (Esc)">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
       </div>
-      <iframe id="game-frame"
-        sandbox="allow-scripts allow-same-origin allow-popups allow-modals allow-forms"
-        allow="autoplay; fullscreen; pointer-lock; web-share"
-        allowfullscreen>
-      </iframe>
+      <iframe id="game-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals" allowfullscreen></iframe>
     </div>
 
-  </div><!-- /content -->
-</div><!-- /layout -->
+  </div>
+</div>
 
 <script>
-/* ═══════════════════════════════════════════════════════
-   GameVault — Main App Logic (No Service Worker)
-   Uses Blob URLs to serve game files directly in-memory.
-   ═══════════════════════════════════════════════════════ */
-
 const $ = id => document.getElementById(id);
 
 // ── State ─────────────────────────────────────────────────
@@ -468,6 +459,7 @@ let rootHandle   = null;
 let activeRow    = null;
 let currentGame  = null;
 let blobURLs     = [];       // track blob URLs for cleanup
+let inputFileMap = null;     // file map from <input> fallback
 
 // ── DOM refs ──────────────────────────────────────────────
 const loadingOverlay = $('loading-overlay');
@@ -484,14 +476,25 @@ const gameTitle      = $('game-title');
 const gameFrame      = $('game-frame');
 const progressBar    = $('load-progress-bar');
 
-// ── Support check ─────────────────────────────────────────
-const hasFS = ('showDirectoryPicker' in window);
+// ── Hidden file input (fallback for all browsers) ─────────
+const hiddenInput = document.createElement('input');
+hiddenInput.type = 'file';
+hiddenInput.setAttribute('webkitdirectory', '');
+hiddenInput.setAttribute('directory', '');
+hiddenInput.setAttribute('mozdirectory', '');
+hiddenInput.multiple = true;
+hiddenInput.style.display = 'none';
+document.body.appendChild(hiddenInput);
 
-if (!hasFS) {
+// ── Support check ─────────────────────────────────────────
+// We support both showDirectoryPicker AND <input webkitdirectory>
+const hasFS = ('showDirectoryPicker' in window);
+const hasInputDir = ('webkitdirectory' in hiddenInput);
+
+if (!hasFS && !hasInputDir) {
   loadingOverlay.style.display = 'none';
   noSupport.style.display = 'flex';
 } else {
-  // No SW needed — ready immediately
   setStatus('ready', 'Ready');
   openBtn.disabled = false;
   hideSplash();
@@ -573,6 +576,23 @@ async function readAllFiles(dirHandle, basePath = '', fileMap = {}, progress = {
   return fileMap;
 }
 
+// ── Read all files from <input> file list ─────────────────
+function readAllFilesFromInput(fileList) {
+  const fileMap = {};
+  for (const file of fileList) {
+    // webkitRelativePath gives "FolderName/sub/file.html"
+    // We strip the root folder name to get relative paths
+    let path = file.webkitRelativePath || file.name;
+    // Remove the leading root folder name
+    const slashIdx = path.indexOf('/');
+    if (slashIdx !== -1) {
+      path = path.substring(slashIdx + 1);
+    }
+    fileMap[path] = file;
+  }
+  return fileMap;
+}
+
 // ── Build blob URL map from file map ──────────────────────
 function buildBlobURLMap(fileMap) {
   const map = {};
@@ -618,7 +638,6 @@ async function buildGameBlob(htmlPath, fileMap, blobMap) {
   let html = await htmlFile.text();
 
   // Rewrite src="...", href="...", url("..."), url('...') references
-  // We need to resolve relative paths from the HTML file's location
   html = html.replace(
     /(src|href|poster|data|action)\s*=\s*["']([^"']*?)["']/gi,
     (match, attr, value) => {
@@ -630,7 +649,7 @@ async function buildGameBlob(htmlPath, fileMap, blobMap) {
     }
   );
 
-  // Rewrite url() in CSS (both inline styles and <style> blocks)
+  // Rewrite url() in CSS
   html = html.replace(
     /url\(\s*["']?([^"')]+?)["']?\s*\)/gi,
     (match, value) => {
@@ -642,8 +661,7 @@ async function buildGameBlob(htmlPath, fileMap, blobMap) {
     }
   );
 
-  // Inject a helper script that overrides fetch() and XMLHttpRequest
-  // so dynamically loaded resources also resolve from our blob map
+  // Inject helper script for dynamic resource loading
   const helperScript = `
 <script>
 (function() {
@@ -652,7 +670,6 @@ async function buildGameBlob(htmlPath, fileMap, blobMap) {
 
   function __resolve(url) {
     if (!url || url.startsWith('blob:') || url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//')) return null;
-    // Remove leading ./
     url = url.replace(/^\\.\\//g, '');
     const parts = __htmlDir ? __htmlDir.split('/') : [];
     const segs = url.split('/');
@@ -663,7 +680,6 @@ async function buildGameBlob(htmlPath, fileMap, blobMap) {
     return parts.join('/');
   }
 
-  // Override fetch
   const _origFetch = window.fetch;
   window.fetch = function(input, init) {
     const url = (typeof input === 'string') ? input : (input && input.url) || '';
@@ -674,7 +690,6 @@ async function buildGameBlob(htmlPath, fileMap, blobMap) {
     return _origFetch.call(window, input, init);
   };
 
-  // Override XMLHttpRequest
   const _origOpen = XMLHttpRequest.prototype.open;
   XMLHttpRequest.prototype.open = function(method, url, ...rest) {
     const resolved = __resolve(url);
@@ -684,7 +699,6 @@ async function buildGameBlob(htmlPath, fileMap, blobMap) {
     return _origOpen.call(this, method, url, ...rest);
   };
 
-  // Override dynamic script/img/link creation
   const _origSetAttr = Element.prototype.setAttribute;
   Element.prototype.setAttribute = function(name, value) {
     if ((name === 'src' || name === 'href') && typeof value === 'string') {
@@ -696,7 +710,6 @@ async function buildGameBlob(htmlPath, fileMap, blobMap) {
     return _origSetAttr.call(this, name, value);
   };
 
-  // Override .src setter for Image, Script, etc.
   for (const Ctor of [HTMLImageElement, HTMLScriptElement, HTMLAudioElement, HTMLVideoElement, HTMLSourceElement, HTMLIFrameElement]) {
     const desc = Object.getOwnPropertyDescriptor(Ctor.prototype, 'src');
     if (desc && desc.set) {
@@ -715,7 +728,6 @@ async function buildGameBlob(htmlPath, fileMap, blobMap) {
     }
   }
 
-  // Override new Image() via MutationObserver for safety
   const observer = new MutationObserver(mutations => {
     for (const m of mutations) {
       for (const node of m.addedNodes) {
@@ -737,10 +749,9 @@ async function buildGameBlob(htmlPath, fileMap, blobMap) {
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 })();
-<\\/script>
+<\/script>
 `;
 
-  // Inject helper right after <head> or at the top of the document
   if (html.includes('<head>')) {
     html = html.replace('<head>', '<head>' + helperScript);
   } else if (html.includes('<HEAD>')) {
@@ -759,25 +770,46 @@ async function buildGameBlob(htmlPath, fileMap, blobMap) {
 
 // ── Open Folder ────────────────────────────────────────────
 openBtn.onclick = async () => {
-  try {
-    const handle = await window.showDirectoryPicker({ mode: 'read' });
-    rootHandle = handle;
-    folderName.textContent = handle.name;
+  // Always use <input webkitdirectory> — it's the most reliable
+  // across all browsers including Chromebooks
+  hiddenInput.value = '';
+  hiddenInput.click();
+};
 
+// Handle files from <input webkitdirectory>
+hiddenInput.addEventListener('change', async () => {
+  const files = hiddenInput.files;
+  if (!files || files.length === 0) return;
+
+  try {
+    // Get root folder name from the first file's path
+    const firstPath = files[0].webkitRelativePath || files[0].name;
+    const rootName = firstPath.split('/')[0] || 'Selected Folder';
+
+    folderName.textContent = rootName;
     sidebarEmpty.style.display = 'none';
     fileTree.style.display     = 'block';
     fileTree.innerHTML         = '';
 
-    setStatus('ready', `📁 ${handle.name}`);
-    await renderDirectoryWithPath(handle, fileTree, 0, '');
-    toast(`Opened: ${handle.name}`);
+    setStatus('ready', `Reading ${files.length} files…`);
+
+    // Build file map from input
+    inputFileMap = readAllFilesFromInput(files);
+    rootHandle = null; // clear directory handle since we're using input
+
+    console.log('[GameVault] Files loaded:', Object.keys(inputFileMap).length, 'files');
+    console.log('[GameVault] File paths:', Object.keys(inputFileMap));
+
+    // Build tree from flat file paths
+    renderTreeFromFileMap(inputFileMap, fileTree);
+
+    setStatus('ready', `📁 ${rootName} (${Object.keys(inputFileMap).length} files)`);
+    toast(`Opened: ${rootName} — ${Object.keys(inputFileMap).length} files`);
   } catch (err) {
-    if (err.name !== 'AbortError') {
-      toast('Could not open folder.', true);
-      console.error(err);
-    }
+    toast('Could not read folder: ' + err.message, true);
+    console.error('[GameVault] Error:', err);
   }
-};
+});
 
 // ── File Tree ──────────────────────────────────────────────
 const FILE_ICONS = {
@@ -804,52 +836,77 @@ function isPlayable(name) {
   return ext === 'html' || ext === 'htm';
 }
 
-async function renderDirectoryWithPath(dirHandle, container, depth, basePath) {
-  const entries = [];
-  try {
-    for await (const [name, handle] of dirHandle.entries()) {
-      entries.push({ name, handle, kind: handle.kind });
+// ── Build tree from a flat fileMap { "path/to/file": File } ──
+function renderTreeFromFileMap(fileMap, container) {
+  // Build a nested tree structure from flat paths
+  const tree = {};
+  for (const path of Object.keys(fileMap)) {
+    const parts = path.split('/');
+    let current = tree;
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      if (i === parts.length - 1) {
+        // It's a file
+        current[part] = { __isFile: true, __path: path };
+      } else {
+        // It's a directory
+        if (!current[part] || current[part].__isFile) {
+          current[part] = {};
+        }
+        current = current[part];
+      }
     }
-  } catch { return; }
+  }
 
-  entries.sort((a, b) => {
-    if (a.kind !== b.kind) return a.kind === 'directory' ? -1 : 1;
-    return a.name.localeCompare(b.name);
+  // Render the tree recursively
+  renderTreeLevel(tree, container, 0);
+}
+
+function renderTreeLevel(treeObj, container, depth) {
+  // Separate directories and files, then sort each group
+  const entries = Object.keys(treeObj).sort((a, b) => {
+    const aIsDir = !treeObj[a].__isFile;
+    const bIsDir = !treeObj[b].__isFile;
+    if (aIsDir !== bIsDir) return aIsDir ? -1 : 1;
+    return a.localeCompare(b);
   });
 
-  for (const { name, handle, kind } of entries) {
-    const filePath = basePath ? `${basePath}/${name}` : name;
+  for (const name of entries) {
+    const entry = treeObj[name];
+    const isFile = entry.__isFile;
+    const kind = isFile ? 'file' : 'directory';
+
     const node = document.createElement('div');
     node.className = 'tree-node';
 
     const row = document.createElement('div');
     row.className = 'tree-row';
-    row.dataset.path = filePath;
+    if (isFile) row.dataset.path = entry.__path;
     row.style.paddingLeft = `${depth * 14 + 8}px`;
 
     const chevron = document.createElement('span');
     chevron.className = 'tree-chevron';
-    chevron.innerHTML = kind === 'directory' ? '▶' : '';
+    chevron.innerHTML = !isFile ? '▶' : '';
 
     const iconEl = document.createElement('span');
     iconEl.className = 'tree-icon';
     iconEl.textContent = getIcon(name, kind);
 
     const label = document.createElement('span');
-    label.className = 'tree-label' + (isPlayable(name) ? ' playable' : '');
+    label.className = 'tree-label' + (isFile && isPlayable(name) ? ' playable' : '');
     label.textContent = name;
 
     row.append(chevron, iconEl, label);
     node.appendChild(row);
 
-    if (kind === 'directory') {
+    if (!isFile) {
       const children = document.createElement('div');
       children.className = 'tree-children open';
       node.appendChild(children);
       chevron.classList.add('open');
 
-      // Eagerly load all children so every file is visible immediately
-      await renderDirectoryWithPath(handle, children, depth + 1, filePath);
+      // Render children immediately
+      renderTreeLevel(entry, children, depth + 1);
 
       row.addEventListener('click', () => {
         const open = children.classList.toggle('open');
@@ -862,7 +919,7 @@ async function renderDirectoryWithPath(dirHandle, container, depth, basePath) {
         row.classList.add('active');
       });
 
-      row.addEventListener('dblclick', () => launchGame(name, filePath));
+      row.addEventListener('dblclick', () => launchGame(name, entry.__path));
     }
 
     container.appendChild(node);
@@ -871,7 +928,7 @@ async function renderDirectoryWithPath(dirHandle, container, depth, basePath) {
 
 // ── Launch Game ────────────────────────────────────────────
 async function launchGame(name, path) {
-  if (!rootHandle) { toast('Open a folder first.', true); return; }
+  if (!rootHandle && !inputFileMap) { toast('Open a folder first.', true); return; }
   if (!isPlayable(name)) { toast('Only HTML files can be launched.', true); return; }
 
   // Show progress
@@ -882,9 +939,9 @@ async function launchGame(name, path) {
     // Clean up previous blob URLs
     cleanupBlobURLs();
 
-    // Step 1: Read all files from the root directory
+    // Step 1: Read all files from the root directory (or use inputFileMap)
     progressBar.style.width = '20%';
-    const fileMap = await readAllFiles(rootHandle);
+    const fileMap = inputFileMap ? inputFileMap : await readAllFiles(rootHandle);
     progressBar.style.width = '50%';
 
     // Step 2: Create blob URLs for every file
