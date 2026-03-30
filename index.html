@@ -1068,9 +1068,37 @@
 
       let html = await htmlFile.text();
 
-      // Rewrite src="...", href="...", url("..."), url('...') references
+      // Count how many local references actually exist in blobMap
+      // If none match, skip rewriting entirely (self-contained HTML)
+      let localRefCount = 0;
+      const attrRegex = /(src|href|poster|action)\s*=\s*["']([^"']*?)["']/gi;
+      const urlRegex = /url\(\s*["']?([^"')]+?)["']?\s*\)/gi;
+      let m;
+      while ((m = attrRegex.exec(html)) !== null) {
+        const resolved = resolvePath(htmlPath, m[2]);
+        if (resolved && blobMap[resolved]) localRefCount++;
+      }
+      while ((m = urlRegex.exec(html)) !== null) {
+        const resolved = resolvePath(htmlPath, m[1]);
+        if (resolved && blobMap[resolved]) localRefCount++;
+      }
+
+      // If no local resources to rewrite, load the HTML as-is
+      // This keeps self-contained HTML files (saved games, apps) working perfectly
+      if (localRefCount === 0) {
+        console.log('[FileVault] No local refs found — loading HTML without rewriting');
+        const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        blobURLs.push(url);
+        return url;
+      }
+
+      console.log(`[FileVault] Found ${localRefCount} local refs — rewriting paths`);
+
+      // Rewrite src="...", href="...", poster="...", action="..." references
+      // Note: 'data' is excluded because it matches JS variable names and corrupts code
       html = html.replace(
-        /(src|href|poster|data|action)\s*=\s*["']([^"']*?)["']/gi,
+        /(src|href|poster|action)\s*=\s*["']([^"']*?)["']/gi,
         (match, attr, value) => {
           const resolved = resolvePath(htmlPath, value);
           if (resolved && blobMap[resolved]) {
@@ -1080,7 +1108,7 @@
         }
       );
 
-      // Rewrite url() in CSS
+      // Rewrite url() in CSS (only within <style> blocks and style attributes)
       html = html.replace(
         /url\(\s*["']?([^"')]+?)["']?\s*\)/gi,
         (match, value) => {
@@ -1092,15 +1120,24 @@
         }
       );
 
-      // Inject helper script for dynamic resource loading
+      // Only inject the helper script when there are local resources to intercept
+      // Build a minimal blobMap with only entries that actually exist
+      const minimalBlobMap = {};
+      for (const [path, url] of Object.entries(blobMap)) {
+        // Skip the HTML file itself
+        if (path === htmlPath) continue;
+        minimalBlobMap[path] = url;
+      }
+
       const helperScript = `
 <script>
 (function() {
-  const __blobMap = ${JSON.stringify(blobMap)};
+  const __blobMap = ${JSON.stringify(minimalBlobMap)};
   const __htmlDir = ${JSON.stringify(htmlPath.split('/').slice(0, -1).join('/'))};
 
   function __resolve(url) {
-    if (!url || url.startsWith('blob:') || url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//')) return null;
+    if (!url || url.startsWith('blob:') || url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//') || url.startsWith('#') || url.startsWith('javascript:') || url.startsWith('mailto:')) return null;
+    url = url.split('?')[0].split('#')[0]; // strip query/hash
     url = url.replace(/^\\.\\//g, '');
     const parts = __htmlDir ? __htmlDir.split('/') : [];
     const segs = url.split('/');
@@ -1111,76 +1148,31 @@
     return parts.join('/');
   }
 
+  // Only intercept fetch for local resources, pass everything else through untouched
   const _origFetch = window.fetch;
   window.fetch = function(input, init) {
-    const url = (typeof input === 'string') ? input : (input && input.url) || '';
-    const resolved = __resolve(url);
-    if (resolved && __blobMap[resolved]) {
-      return _origFetch.call(window, __blobMap[resolved], init);
-    }
+    try {
+      const url = (typeof input === 'string') ? input : (input && input.url) || '';
+      const resolved = __resolve(url);
+      if (resolved && __blobMap[resolved]) {
+        return _origFetch.call(window, __blobMap[resolved], init);
+      }
+    } catch(e) {}
     return _origFetch.call(window, input, init);
   };
 
   const _origOpen = XMLHttpRequest.prototype.open;
   XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-    const resolved = __resolve(url);
-    if (resolved && __blobMap[resolved]) {
-      return _origOpen.call(this, method, __blobMap[resolved], ...rest);
-    }
+    try {
+      const resolved = __resolve(url);
+      if (resolved && __blobMap[resolved]) {
+        return _origOpen.call(this, method, __blobMap[resolved], ...rest);
+      }
+    } catch(e) {}
     return _origOpen.call(this, method, url, ...rest);
   };
-
-  const _origSetAttr = Element.prototype.setAttribute;
-  Element.prototype.setAttribute = function(name, value) {
-    if ((name === 'src' || name === 'href') && typeof value === 'string') {
-      const resolved = __resolve(value);
-      if (resolved && __blobMap[resolved]) {
-        return _origSetAttr.call(this, name, __blobMap[resolved]);
-      }
-    }
-    return _origSetAttr.call(this, name, value);
-  };
-
-  for (const Ctor of [HTMLImageElement, HTMLScriptElement, HTMLAudioElement, HTMLVideoElement, HTMLSourceElement, HTMLIFrameElement]) {
-    const desc = Object.getOwnPropertyDescriptor(Ctor.prototype, 'src');
-    if (desc && desc.set) {
-      const origSet = desc.set;
-      Object.defineProperty(Ctor.prototype, 'src', {
-        ...desc,
-        set(val) {
-          const resolved = __resolve(val);
-          if (resolved && __blobMap[resolved]) {
-            origSet.call(this, __blobMap[resolved]);
-          } else {
-            origSet.call(this, val);
-          }
-        }
-      });
-    }
-  }
-
-  const observer = new MutationObserver(mutations => {
-    for (const m of mutations) {
-      for (const node of m.addedNodes) {
-        if (node.nodeType !== 1) continue;
-        const els = [node, ...node.querySelectorAll ? node.querySelectorAll('[src],[href]') : []];
-        for (const el of els) {
-          for (const attr of ['src', 'href']) {
-            const val = el.getAttribute && el.getAttribute(attr);
-            if (val) {
-              const resolved = __resolve(val);
-              if (resolved && __blobMap[resolved]) {
-                el[attr] = __blobMap[resolved];
-              }
-            }
-          }
-        }
-      }
-    }
-  });
-  observer.observe(document.documentElement, { childList: true, subtree: true });
 })();
-<\/script>
+<\\/script>
 `;
 
       if (html.includes('<head>')) {
