@@ -871,8 +871,8 @@
           </button>
         </div>
         <iframe id="file-frame"
-          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-pointer-lock"
-          allow="pointer-lock" allowfullscreen></iframe>
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-pointer-lock allow-downloads"
+          allow="pointer-lock; autoplay; fullscreen" allowfullscreen></iframe>
       </div>
 
     </div>
@@ -1462,6 +1462,9 @@
           fileRunner.style.display = 'flex';
           fileFrame.src = fileBlobURL;
 
+          // Auto-focus iframe so key inputs go to the loaded content
+          fileFrame.addEventListener('load', () => fileFrame.focus(), { once: true });
+
         } else if (category === 'mhtml') {
           // ── MHTML flow: load raw file into iframe ─────────
           progressBar.style.width = '40%';
@@ -1486,6 +1489,9 @@
           hideAllPanels();
           fileRunner.style.display = 'flex';
           fileFrame.src = mhtmlURL;
+
+          // Auto-focus iframe so key inputs go to the loaded content
+          fileFrame.addEventListener('load', () => fileFrame.focus(), { once: true });
 
         } else if (category === 'audio' || category === 'video') {
           // ── Media flow: play in built-in player ──────────
@@ -1554,12 +1560,19 @@
       setStatus('ready', 'Ready');
     });
 
-    // Keyboard shortcuts
+    // Keyboard shortcuts — only fire when iframe is NOT focused
     document.addEventListener('keydown', e => {
       if (!currentFile) return;
-      if (e.target.tagName === 'INPUT') return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      // Don't intercept keys when the iframe content has focus
+      if (document.activeElement === fileFrame) return;
       if (e.key === 'r' || e.key === 'R') $('refresh-btn').click();
       if (e.key === 'f' || e.key === 'F') $('fullscreen-btn').click();
+    });
+
+    // Click on iframe area to ensure it gets focus
+    fileFrame.addEventListener('mousedown', () => {
+      setTimeout(() => fileFrame.focus(), 0);
     });
 
     // ── Toast ──────────────────────────────────────────────────
