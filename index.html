@@ -1,210 +1,412 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>File Runner — Local File Runner Launcher</title>
-  <meta name="description" content="Run any HTML5 File directly from your Chromebook — no upload, no install." />
+  <title>File Runner — Local File Launcher</title>
+  <meta name="description" content="Run HTML, play MP3/MP4, view MHTML — all locally from your Chromebook, no upload needed." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
 
   <style>
     /* ── Reset & Tokens ───────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg:            #06060f;
-      --surface:       rgba(255,255,255,0.035);
-      --surface-hover: rgba(255,255,255,0.06);
-      --border:        rgba(255,255,255,0.08);
-      --border-bright: rgba(255,255,255,0.14);
-      --grad-a:        #7c3aed;
-      --grad-b:        #06b6d4;
-      --text:          #e2e8f0;
-      --text-2:        #94a3b8;
-      --text-3:        #475569;
-      --success:       #34d399;
-      --danger:        #f87171;
-      --warn:          #fbbf24;
-      --radius:        12px;
-      --font:          'Inter', system-ui, sans-serif;
-      --mono:          'JetBrains Mono', monospace;
-      --sidebar-w:     280px;
-      --bar-h:         56px;
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; }
+    :root {
+      --bg: #06060f;
+      --surface: rgba(255, 255, 255, 0.035);
+      --surface-hover: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-bright: rgba(255, 255, 255, 0.14);
+      --grad-a: #7c3aed;
+      --grad-b: #06b6d4;
+      --text: #e2e8f0;
+      --text-2: #94a3b8;
+      --text-3: #475569;
+      --success: #34d399;
+      --danger: #f87171;
+      --warn: #fbbf24;
+      --radius: 12px;
+      --font: 'Inter', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+      --sidebar-w: 280px;
+      --bar-h: 56px;
+    }
+
+    html,
+    body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      overflow: hidden;
+    }
 
     /* ── Scrollbar ────────────────────────────────────── */
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 99px; }
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-bright);
+      border-radius: 99px;
+    }
 
     /* ── Top Bar ──────────────────────────────────────── */
     #top-bar {
-      position: fixed; top: 0; left: 0; right: 0; height: var(--bar-h);
-      display: flex; align-items: center; gap: 16px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--bar-h);
+      display: flex;
+      align-items: center;
+      gap: 16px;
       padding: 0 20px;
-      background: rgba(6,6,15,0.85);
+      background: rgba(6, 6, 15, 0.85);
       backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border);
       z-index: 100;
     }
 
     .logo {
-      display: flex; align-items: center; gap: 10px;
-      font-weight: 700; font-size: 1.05rem; letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
       background: linear-gradient(135deg, var(--grad-a), var(--grad-b));
-      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
       user-select: none;
     }
-    .logo svg { flex-shrink: 0; }
+
+    .logo svg {
+      flex-shrink: 0;
+    }
 
     #status-pill {
-      display: flex; align-items: center; gap: 7px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
       padding: 5px 12px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 99px;
-      font-size: 0.78rem; color: var(--text-2);
+      font-size: 0.78rem;
+      color: var(--text-2);
     }
+
     #status-dot {
-      width: 7px; height: 7px; border-radius: 50%;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
       background: var(--warn);
       transition: background .3s;
-      box-shadow: 0 0 0 2px rgba(251,191,36,.25);
+      box-shadow: 0 0 0 2px rgba(251, 191, 36, .25);
     }
-    #status-dot.ready  { background: var(--success); box-shadow: 0 0 0 2px rgba(52,211,153,.25); }
-    #status-dot.error  { background: var(--danger);  box-shadow: 0 0 0 2px rgba(248,113,113,.25); }
 
-    .spacer { flex: 1; }
+    #status-dot.ready {
+      background: var(--success);
+      box-shadow: 0 0 0 2px rgba(52, 211, 153, .25);
+    }
+
+    #status-dot.error {
+      background: var(--danger);
+      box-shadow: 0 0 0 2px rgba(248, 113, 113, .25);
+    }
+
+    .spacer {
+      flex: 1;
+    }
 
     #open-btn {
-      display: flex; align-items: center; gap: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
       padding: 9px 18px;
       background: linear-gradient(135deg, var(--grad-a), var(--grad-b));
-      color: #fff; font-family: var(--font); font-weight: 600; font-size: 0.85rem;
-      border: none; border-radius: 9px; cursor: pointer;
+      color: #fff;
+      font-family: var(--font);
+      font-weight: 600;
+      font-size: 0.85rem;
+      border: none;
+      border-radius: 9px;
+      cursor: pointer;
       transition: opacity .2s, transform .15s;
       outline: none;
     }
-    #open-btn:hover  { opacity: .88; transform: translateY(-1px); }
-    #open-btn:active { opacity: 1;   transform: scale(.97); }
-    #open-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    #open-btn:hover {
+      opacity: .88;
+      transform: translateY(-1px);
+    }
+
+    #open-btn:active {
+      opacity: 1;
+      transform: scale(.97);
+    }
+
+    #open-btn:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+      transform: none;
+    }
 
     /* ── Layout ───────────────────────────────────────── */
     #layout {
-      position: fixed; top: var(--bar-h); left: 0; right: 0; bottom: 0;
+      position: fixed;
+      top: var(--bar-h);
+      left: 0;
+      right: 0;
+      bottom: 0;
       display: flex;
     }
 
     /* ── Sidebar ──────────────────────────────────────── */
     #sidebar {
-      width: var(--sidebar-w); flex-shrink: 0;
+      width: var(--sidebar-w);
+      flex-shrink: 0;
       border-right: 1px solid var(--border);
-      display: flex; flex-direction: column;
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
     }
 
     #sidebar-head {
       padding: 14px 16px 12px;
       border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
+
     #folder-name {
-      font-size: 0.8rem; font-weight: 600; color: var(--text-2);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     #file-tree {
-      flex: 1; overflow-y: auto; overflow-x: hidden;
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
       padding: 8px 0;
     }
 
     /* ── Tree Nodes ───────────────────────────────────── */
-    .tree-node { user-select: none; }
+    .tree-node {
+      user-select: none;
+    }
+
     .tree-row {
-      display: flex; align-items: center; gap: 0;
-      padding: 5px 0; cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 5px 0;
+      cursor: pointer;
       border-radius: 7px;
       transition: background .12s;
       position: relative;
     }
-    .tree-row:hover { background: var(--surface-hover); }
-    .tree-row.active { background: rgba(124,58,237,.18); }
+
+    .tree-row:hover {
+      background: var(--surface-hover);
+    }
+
+    .tree-row.active {
+      background: rgba(124, 58, 237, .18);
+    }
+
     .tree-row.active::before {
-      content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
-      width: 2px; border-radius: 0 2px 2px 0;
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 4px;
+      bottom: 4px;
+      width: 2px;
+      border-radius: 0 2px 2px 0;
       background: var(--grad-a);
     }
 
-    .tree-indent { flex-shrink: 0; }
+    .tree-indent {
+      flex-shrink: 0;
+    }
+
     .tree-chevron {
-      width: 20px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--text-3); font-size: 0.65rem;
+      width: 20px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-3);
+      font-size: 0.65rem;
       transition: transform .2s;
     }
-    .tree-chevron.open { transform: rotate(90deg); }
-    .tree-icon { flex-shrink: 0; font-size: 1rem; line-height: 1; }
-    .tree-label {
-      flex: 1; font-family: var(--mono); font-size: 0.775rem;
-      color: var(--text-2); white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis;
-      padding-right: 12px; padding-left: 5px;
-    }
-    .tree-label.playable { color: var(--text); font-weight: 500; }
 
-    .tree-children { display: none; }
-    .tree-children.open { display: block; }
+    .tree-chevron.open {
+      transform: rotate(90deg);
+    }
+
+    .tree-icon {
+      flex-shrink: 0;
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .tree-label {
+      flex: 1;
+      font-family: var(--mono);
+      font-size: 0.775rem;
+      color: var(--text-2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-right: 12px;
+      padding-left: 5px;
+    }
+
+    .tree-label.playable {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .tree-children {
+      display: none;
+    }
+
+    .tree-children.open {
+      display: block;
+    }
 
     /* ── Sidebar empty state ──────────────────────────── */
     #sidebar-empty {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 10px; padding: 24px; text-align: center;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 24px;
+      text-align: center;
     }
-    #sidebar-empty .icon { font-size: 2.5rem; opacity: .4; }
-    #sidebar-empty p { font-size: 0.78rem; color: var(--text-3); line-height: 1.5; }
+
+    #sidebar-empty .icon {
+      font-size: 2.5rem;
+      opacity: .4;
+    }
+
+    #sidebar-empty p {
+      font-size: 0.78rem;
+      color: var(--text-3);
+      line-height: 1.5;
+    }
 
     /* ── Content Area ─────────────────────────────────── */
-    #content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    #content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
 
     /* ── Welcome / No-game State ──────────────────────── */
     #welcome {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 24px; text-align: center; padding: 40px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      text-align: center;
+      padding: 40px;
     }
 
     .welcome-glow {
-      position: relative; display: flex; align-items: center; justify-content: center;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+
     .welcome-glow .glow-ring {
-      position: absolute; width: 120px; height: 120px;
+      position: absolute;
+      width: 120px;
+      height: 120px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(124,58,237,.35) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(124, 58, 237, .35) 0%, transparent 70%);
       animation: pulse 3s ease-in-out infinite;
     }
-    .welcome-glow .icon { font-size: 4rem; position: relative; z-index: 1; filter: drop-shadow(0 0 20px var(--grad-a)); }
+
+    .welcome-glow .icon {
+      font-size: 4rem;
+      position: relative;
+      z-index: 1;
+      filter: drop-shadow(0 0 20px var(--grad-a));
+    }
 
     @keyframes pulse {
-      0%, 100% { transform: scale(1);   opacity: .7; }
-      50%       { transform: scale(1.2); opacity: 1;  }
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: .7;
+      }
+
+      50% {
+        transform: scale(1.2);
+        opacity: 1;
+      }
     }
 
     #welcome h1 {
-      font-size: 2rem; font-weight: 700; letter-spacing: -0.03em;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
       background: linear-gradient(135deg, #fff 0%, var(--text-2) 100%);
-      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
-    #welcome .sub { font-size: 0.95rem; color: var(--text-2); max-width: 380px; line-height: 1.6; }
+
+    #welcome .sub {
+      font-size: 0.95rem;
+      color: var(--text-2);
+      max-width: 380px;
+      line-height: 1.6;
+    }
 
     .steps {
-      display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
       max-width: 560px;
     }
+
     .step {
-      flex: 1; min-width: 150px; max-width: 175px;
+      flex: 1;
+      min-width: 150px;
+      max-width: 175px;
       padding: 18px 16px;
       background: var(--surface);
       border: 1px solid var(--border);
@@ -212,100 +414,310 @@
       text-align: left;
       transition: border-color .2s, box-shadow .2s;
     }
-    .step:hover { border-color: var(--border-bright); box-shadow: 0 4px 24px rgba(124,58,237,.15); }
-    .step .num {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 24px; height: 24px; border-radius: 7px;
-      background: linear-gradient(135deg, var(--grad-a), var(--grad-b));
-      font-size: 0.7rem; font-weight: 700; color: #fff; margin-bottom: 10px;
+
+    .step:hover {
+      border-color: var(--border-bright);
+      box-shadow: 0 4px 24px rgba(124, 58, 237, .15);
     }
-    .step h3 { font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; }
-    .step p  { font-size: 0.73rem; color: var(--text-2); line-height: 1.5; }
+
+    .step .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, var(--grad-a), var(--grad-b));
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+
+    .step h3 {
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .step p {
+      font-size: 0.73rem;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
 
     .compat-badge {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 16px; border-radius: 99px;
-      background: var(--surface); border: 1px solid var(--border);
-      font-size: 0.75rem; color: var(--text-2);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 99px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--text-2);
     }
 
-    /* ── Game Runner ──────────────────────────────────── */
-    #game-runner { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    /* ── Media Player (audio/video) ─────────────────── */
+    #media-player {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 40px;
+      background: linear-gradient(180deg, rgba(6,6,15,1) 0%, rgba(15,12,30,1) 100%);
+    }
 
-    #game-toolbar {
-      display: flex; align-items: center; gap: 12px;
+    .media-artwork {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .media-artwork .disc {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, #1a1230, #2d1b69, #1a1230, #0f0d2a, #1a1230);
+      border: 3px solid rgba(124,58,237,.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 60px rgba(124,58,237,.2), inset 0 0 40px rgba(0,0,0,.5);
+      animation: discSpin 4s linear infinite;
+      animation-play-state: paused;
+    }
+
+    .media-artwork .disc.spinning {
+      animation-play-state: running;
+    }
+
+    .media-artwork .disc-hole {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 2px solid rgba(124,58,237,.4);
+    }
+
+    @keyframes discSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    .media-filename {
+      font-family: var(--mono);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+      text-align: center;
+      max-width: 500px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .media-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 99px;
+      background: rgba(124,58,237,.15);
+      border: 1px solid rgba(124,58,237,.25);
+      font-size: 0.75rem;
+      color: var(--grad-a);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    #media-player audio,
+    #media-player video {
+      max-width: 90%;
+      max-height: 60vh;
+      border-radius: 12px;
+      outline: none;
+      background: #000;
+    }
+
+    #media-player audio {
+      width: 400px;
+      max-width: 90%;
+      filter: drop-shadow(0 4px 20px rgba(124,58,237,.3));
+    }
+
+    #media-player video {
+      width: 80%;
+      box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 60px rgba(124,58,237,.15);
+    }
+
+    /* ── File Runner ──────────────────────────────────── */
+    #file-runner {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #file-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
       padding: 0 16px;
       height: 44px;
       border-bottom: 1px solid var(--border);
       background: var(--surface);
       flex-shrink: 0;
     }
-    #game-title {
-      flex: 1; font-family: var(--mono); font-size: 0.8rem; color: var(--text-2);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+
+    #file-title {
+      flex: 1;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--text-2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+
     .toolbar-btn {
-      display: flex; align-items: center; justify-content: center;
-      width: 32px; height: 32px; border-radius: 8px; border: none;
-      background: var(--surface-hover); color: var(--text-2); cursor: pointer;
-      font-size: 0.9rem; transition: background .15s, color .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      background: var(--surface-hover);
+      color: var(--text-2);
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background .15s, color .15s;
       flex-shrink: 0;
     }
-    .toolbar-btn:hover { background: rgba(255,255,255,.1); color: var(--text); }
-    .toolbar-btn.danger:hover { background: rgba(248,113,113,.15); color: var(--danger); }
 
-    #game-frame {
-      flex: 1; width: 100%; height: 100%;
+    .toolbar-btn:hover {
+      background: rgba(255, 255, 255, .1);
+      color: var(--text);
+    }
+
+    .toolbar-btn.danger:hover {
+      background: rgba(248, 113, 113, .15);
+      color: var(--danger);
+    }
+
+    #file-frame {
+      flex: 1;
+      width: 100%;
+      height: 100%;
       border: none;
       background: #000;
     }
 
     /* ── Loading Overlay ──────────────────────────────── */
     #loading-overlay {
-      position: fixed; inset: 0;
+      position: fixed;
+      inset: 0;
       background: var(--bg);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 16px; z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 9999;
       transition: opacity .4s;
     }
+
     #loading-overlay .spinner {
-      width: 40px; height: 40px; border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
       border: 3px solid var(--border);
       border-top-color: var(--grad-a);
       animation: spin .8s linear infinite;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    #loading-overlay p { font-size: 0.85rem; color: var(--text-2); }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    #loading-overlay p {
+      font-size: 0.85rem;
+      color: var(--text-2);
+    }
 
     /* ── No-support Banner ────────────────────────────── */
     #no-support {
-      position: fixed; inset: 0;
+      position: fixed;
+      inset: 0;
       background: var(--bg);
-      display: none; flex-direction: column; align-items: center; justify-content: center;
-      gap: 16px; text-align: center; padding: 32px; z-index: 9999;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+      padding: 32px;
+      z-index: 9999;
     }
-    #no-support h2 { font-size: 1.4rem; color: var(--danger); }
-    #no-support p { color: var(--text-2); max-width: 400px; line-height: 1.6; font-size: .9rem; }
+
+    #no-support h2 {
+      font-size: 1.4rem;
+      color: var(--danger);
+    }
+
+    #no-support p {
+      color: var(--text-2);
+      max-width: 400px;
+      line-height: 1.6;
+      font-size: .9rem;
+    }
 
     /* ── Toast ────────────────────────────────────────── */
     #toast {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
-      padding: 10px 20px; border-radius: 10px;
-      background: rgba(30,30,50,0.95); border: 1px solid var(--border-bright);
-      color: var(--text); font-size: 0.83rem; font-weight: 500;
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      padding: 10px 20px;
+      border-radius: 10px;
+      background: rgba(30, 30, 50, 0.95);
+      border: 1px solid var(--border-bright);
+      color: var(--text);
+      font-size: 0.83rem;
+      font-weight: 500;
       backdrop-filter: blur(12px);
-      transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
-      opacity: 0; z-index: 9000; pointer-events: none; white-space: nowrap;
+      transition: transform .3s cubic-bezier(.34, 1.56, .64, 1), opacity .3s;
+      opacity: 0;
+      z-index: 9000;
+      pointer-events: none;
+      white-space: nowrap;
     }
-    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
 
     /* ── Progress bar ─────────────────────────────────── */
     #load-progress {
-      position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 10000;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      z-index: 10000;
       background: transparent;
     }
+
     #load-progress-bar {
-      height: 100%; width: 0%;
+      height: 100%;
+      width: 0%;
       background: linear-gradient(90deg, var(--grad-a), var(--grad-b));
       transition: width 0.2s ease;
       border-radius: 0 2px 2px 0;
@@ -313,356 +725,375 @@
     }
   </style>
 </head>
+
 <body>
 
-<!-- Loading Overlay -->
-<div id="loading-overlay">
-  <div class="spinner"></div>
-  <p>Initializing GameVault…</p>
-</div>
-
-<!-- No support fallback -->
-<div id="no-support">
-  <div style="font-size:3rem">😞</div>
-  <h2>Browser Not Supported</h2>
-  <p>GameVault requires the <strong>File System Access API</strong>. Please use <strong>Chrome 86+</strong> or <strong>Microsoft Edge 86+</strong> on desktop.</p>
-</div>
-
-<!-- Toast -->
-<div id="toast"></div>
-
-<!-- Progress bar -->
-<div id="load-progress"><div id="load-progress-bar"></div></div>
-
-<!-- Top Bar -->
-<div id="top-bar">
-  <div class="logo">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#7c3aed"/>
-          <stop offset="100%" stop-color="#06b6d4"/>
-        </linearGradient>
-      </defs>
-      <rect x="2" y="6" width="20" height="14" rx="4" fill="url(#lg)" opacity=".9"/>
-      <circle cx="8.5" cy="13" r="1.2" fill="white"/>
-      <circle cx="11.5" cy="11" r="1.2" fill="white"/>
-      <circle cx="11.5" cy="15" r="1.2" fill="white"/>
-      <circle cx="14.5" cy="13" r="1.2" fill="white"/>
-      <rect x="9" y="3" width="6" height="3" rx="1.5" fill="url(#lg)" opacity=".7"/>
-    </svg>
-    GameVault
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <p>Initializing FileVault…</p>
   </div>
 
-  <div id="status-pill">
-    <div id="status-dot"></div>
-    <span id="status-text">Starting…</span>
+  <!-- No support fallback -->
+  <div id="no-support">
+    <div style="font-size:3rem">😞</div>
+    <h2>Browser Not Supported</h2>
+    <p>FileVault requires the <strong>File System Access API</strong>. Please use <strong>Chrome 86+</strong> or
+      <strong>Microsoft Edge 86+</strong> on desktop.</p>
   </div>
 
-  <div class="spacer"></div>
+  <!-- Toast -->
+  <div id="toast"></div>
 
-  <button id="open-btn" disabled>
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-    </svg>
-    Open Folder
-  </button>
-</div>
+  <!-- Progress bar -->
+  <div id="load-progress">
+    <div id="load-progress-bar"></div>
+  </div>
 
-<!-- Main Layout -->
-<div id="layout">
-
-  <!-- Sidebar -->
-  <aside id="sidebar">
-    <div id="sidebar-head">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--grad-a)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+  <!-- Top Bar -->
+  <div id="top-bar">
+    <div class="logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#7c3aed" />
+            <stop offset="100%" stop-color="#06b6d4" />
+          </linearGradient>
+        </defs>
+        <rect x="2" y="6" width="20" height="14" rx="4" fill="url(#lg)" opacity=".9" />
+        <circle cx="8.5" cy="13" r="1.2" fill="white" />
+        <circle cx="11.5" cy="11" r="1.2" fill="white" />
+        <circle cx="11.5" cy="15" r="1.2" fill="white" />
+        <circle cx="14.5" cy="13" r="1.2" fill="white" />
+        <rect x="9" y="3" width="6" height="3" rx="1.5" fill="url(#lg)" opacity=".7" />
       </svg>
-      <span id="folder-name">No folder selected</span>
+      FileVault
     </div>
 
-    <div id="sidebar-empty">
-      <div class="icon">📁</div>
-      <p>Click <strong>Open Folder</strong> to browse your game files</p>
+    <div id="status-pill">
+      <div id="status-dot"></div>
+      <span id="status-text">Starting…</span>
     </div>
 
-    <div id="file-tree" style="display:none"></div>
-  </aside>
+    <div class="spacer"></div>
 
-  <!-- Content -->
-  <div id="content">
-
-    <!-- Welcome -->
-    <div id="welcome">
-      <div class="welcome-glow">
-        <div class="glow-ring"></div>
-        <div class="icon">🎮</div>
-      </div>
-      <h1>GameVault</h1>
-      <p class="sub">Run any HTML5 game directly from your device — no upload, no install required.</p>
-
-      <div class="steps">
-        <div class="step">
-          <div class="num">1</div>
-          <h3>Open Folder</h3>
-          <p>Pick your game's root folder from your device.</p>
-        </div>
-        <div class="step">
-          <div class="num">2</div>
-          <h3>Browse Files</h3>
-          <p>See all game files in the sidebar tree.</p>
-        </div>
-        <div class="step">
-          <div class="num">3</div>
-          <h3>Launch Game</h3>
-          <p>Double-click any <strong>.html</strong> file to run it.</p>
-        </div>
-      </div>
-
-      <div class="compat-badge">
-        <span>✅</span> Optimised for Chrome & Chromebook
-      </div>
-    </div>
-
-    <!-- Game Runner (hidden initially) -->
-    <div id="game-runner" style="display:none">
-      <div id="game-toolbar">
-        <span id="game-title">No game loaded</span>
-        <button class="toolbar-btn" id="refresh-btn" title="Reload game (R)">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-          </svg>
-        </button>
-        <button class="toolbar-btn" id="fullscreen-btn" title="Fullscreen (F)">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
-            <line x1="3" y1="21" x2="9" y2="15"/><line x1="15" y1="3" x2="21" y2="9"/>
-          </svg>
-        </button>
-        <button class="toolbar-btn danger" id="close-btn" title="Close game (Esc)">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-      <iframe id="game-frame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-pointer-lock" allow="pointer-lock" allowfullscreen></iframe>
-    </div>
-
+    <button id="open-btn" disabled>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+      </svg>
+      Open Folder
+    </button>
   </div>
-</div>
 
-<script>
-const $ = id => document.getElementById(id);
+  <!-- Main Layout -->
+  <div id="layout">
 
-// ── State ─────────────────────────────────────────────────
-let rootHandle   = null;
-let activeRow    = null;
-let currentGame  = null;
-let blobURLs     = [];       // track blob URLs for cleanup
-let inputFileMap = null;     // file map from <input> fallback
+    <!-- Sidebar -->
+    <aside id="sidebar">
+      <div id="sidebar-head">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--grad-a)" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+        </svg>
+        <span id="folder-name">No folder selected</span>
+      </div>
 
-// ── DOM refs ──────────────────────────────────────────────
-const loadingOverlay = $('loading-overlay');
-const noSupport      = $('no-support');
-const statusDot      = $('status-dot');
-const statusText     = $('status-text');
-const openBtn        = $('open-btn');
-const folderName     = $('folder-name');
-const sidebarEmpty   = $('sidebar-empty');
-const fileTree       = $('file-tree');
-const welcome        = $('welcome');
-const gameRunner     = $('game-runner');
-const gameTitle      = $('game-title');
-const gameFrame      = $('game-frame');
-const progressBar    = $('load-progress-bar');
+      <div id="sidebar-empty">
+        <div class="icon">📁</div>
+        <p>Click <strong>Open Folder</strong> to browse your files</p>
+      </div>
 
-// ── Hidden file input (fallback for all browsers) ─────────
-const hiddenInput = document.createElement('input');
-hiddenInput.type = 'file';
-hiddenInput.setAttribute('webkitdirectory', '');
-hiddenInput.setAttribute('directory', '');
-hiddenInput.setAttribute('mozdirectory', '');
-hiddenInput.multiple = true;
-hiddenInput.style.display = 'none';
-document.body.appendChild(hiddenInput);
+      <div id="file-tree" style="display:none"></div>
+    </aside>
 
-// ── Support check ─────────────────────────────────────────
-// We support both showDirectoryPicker AND <input webkitdirectory>
-const hasFS = ('showDirectoryPicker' in window);
-const hasInputDir = ('webkitdirectory' in hiddenInput);
+    <!-- Content -->
+    <div id="content">
 
-if (!hasFS && !hasInputDir) {
-  loadingOverlay.style.display = 'none';
-  noSupport.style.display = 'flex';
-} else {
-  setStatus('ready', 'Ready');
-  openBtn.disabled = false;
-  hideSplash();
-}
+      <!-- Welcome -->
+      <div id="welcome">
+        <div class="welcome-glow">
+          <div class="glow-ring"></div>
+          <div class="icon">📂</div>
+        </div>
+        <h1>FileVault</h1>
+        <p class="sub">Run HTML files, play MP3/MP4 media, and view MHTML archives — all locally, no upload needed.</p>
 
-function hideSplash() {
-  loadingOverlay.style.opacity = '0';
-  setTimeout(() => loadingOverlay.style.display = 'none', 400);
-}
+        <div class="steps">
+          <div class="step">
+            <div class="num">1</div>
+            <h3>Open Folder</h3>
+            <p>Pick any folder from your device.</p>
+          </div>
+          <div class="step">
+            <div class="num">2</div>
+            <h3>Browse Files</h3>
+            <p>See all files in the sidebar tree.</p>
+          </div>
+          <div class="step">
+            <div class="num">3</div>
+            <h3>Launch File</h3>
+            <p>Double-click any <strong>.html</strong>, <strong>.mp3</strong>, <strong>.mp4</strong>, or <strong>.mhtml</strong> file.</p>
+          </div>
+        </div>
 
-function setStatus(type, text) {
-  statusDot.className = type;
-  statusText.textContent = text;
-}
+        <div class="compat-badge">
+          <span>✅</span> HTML · MP3 · MP4 · MHTML — Optimised for Chrome & Chromebook
+        </div>
+      </div>
 
-// ── MIME types ─────────────────────────────────────────────
-function getMimeType(filename) {
-  const ext = filename.split('.').pop().toLowerCase();
-  return ({
-    html: 'text/html; charset=utf-8',
-    htm:  'text/html; charset=utf-8',
-    js:   'application/javascript',
-    mjs:  'application/javascript',
-    css:  'text/css',
-    json: 'application/json',
-    xml:  'application/xml',
-    png:  'image/png',
-    jpg:  'image/jpeg',
-    jpeg: 'image/jpeg',
-    gif:  'image/gif',
-    svg:  'image/svg+xml',
-    webp: 'image/webp',
-    ico:  'image/x-icon',
-    bmp:  'image/bmp',
-    mp3:  'audio/mpeg',
-    ogg:  'audio/ogg',
-    wav:  'audio/wav',
-    flac: 'audio/flac',
-    aac:  'audio/aac',
-    m4a:  'audio/mp4',
-    mp4:  'video/mp4',
-    webm: 'video/webm',
-    ogv:  'video/ogg',
-    wasm: 'application/wasm',
-    ttf:  'font/ttf',
-    otf:  'font/otf',
-    woff: 'font/woff',
-    woff2:'font/woff2',
-    txt:  'text/plain',
-    csv:  'text/csv',
-    data: 'application/octet-stream',
-    bin:  'application/octet-stream',
-  })[ext] ?? 'application/octet-stream';
-}
+      <!-- File Runner (hidden initially) -->
+      <div id="file-runner" style="display:none">
+        <div id="file-toolbar">
+          <span id="file-title">No file loaded</span>
+          <button class="toolbar-btn" id="refresh-btn" title="Reload file (R)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+          </button>
+          <button class="toolbar-btn" id="fullscreen-btn" title="Fullscreen (F)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 3 21 3 21 9" />
+              <polyline points="9 21 3 21 3 15" />
+              <line x1="3" y1="21" x2="9" y2="15" />
+              <line x1="15" y1="3" x2="21" y2="9" />
+            </svg>
+          </button>
+          <button class="toolbar-btn danger" id="close-btn" title="Close file (Esc)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <iframe id="file-frame"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-pointer-lock"
+          allow="pointer-lock" allowfullscreen></iframe>
+      </div>
 
-// ── Read all files recursively from a directory handle ─────
-async function readAllFiles(dirHandle, basePath = '', fileMap = {}, progress = { count: 0 }) {
-  try {
-    for await (const [name, handle] of dirHandle.entries()) {
-      const path = basePath ? `${basePath}/${name}` : name;
-      if (handle.kind === 'file') {
-        try {
-          const file = await handle.getFile();
-          fileMap[path] = file;
-          progress.count++;
-          if (progress.count % 10 === 0) {
-            statusText.textContent = `Reading files… (${progress.count})`;
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    // ── State ─────────────────────────────────────────────────
+    let rootHandle = null;
+    let activeRow = null;
+    let currentFile = null;
+    let blobURLs = [];       // track blob URLs for cleanup
+    let inputFileMap = null;     // file map from <input> fallback
+
+    // ── DOM refs ──────────────────────────────────────────────
+    const loadingOverlay = $('loading-overlay');
+    const noSupport = $('no-support');
+    const statusDot = $('status-dot');
+    const statusText = $('status-text');
+    const openBtn = $('open-btn');
+    const folderName = $('folder-name');
+    const sidebarEmpty = $('sidebar-empty');
+    const fileTree = $('file-tree');
+    const welcome = $('welcome');
+    const fileRunner = $('file-runner');
+    const fileTitle = $('file-title');
+    const fileFrame = $('file-frame');
+    const progressBar = $('load-progress-bar');
+
+    // ── Hidden file input (fallback for all browsers) ─────────
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'file';
+    hiddenInput.setAttribute('webkitdirectory', '');
+    hiddenInput.setAttribute('directory', '');
+    hiddenInput.setAttribute('mozdirectory', '');
+    hiddenInput.multiple = true;
+    hiddenInput.style.display = 'none';
+    document.body.appendChild(hiddenInput);
+
+    // ── Support check ─────────────────────────────────────────
+    // We support both showDirectoryPicker AND <input webkitdirectory>
+    const hasFS = ('showDirectoryPicker' in window);
+    const hasInputDir = ('webkitdirectory' in hiddenInput);
+
+    if (!hasFS && !hasInputDir) {
+      loadingOverlay.style.display = 'none';
+      noSupport.style.display = 'flex';
+    } else {
+      setStatus('ready', 'Ready');
+      openBtn.disabled = false;
+      hideSplash();
+    }
+
+    function hideSplash() {
+      loadingOverlay.style.opacity = '0';
+      setTimeout(() => loadingOverlay.style.display = 'none', 400);
+    }
+
+    function setStatus(type, text) {
+      statusDot.className = type;
+      statusText.textContent = text;
+    }
+
+    // ── MIME types ─────────────────────────────────────────────
+    function getMimeType(filename) {
+      const ext = filename.split('.').pop().toLowerCase();
+      return ({
+        html: 'text/html; charset=utf-8',
+        htm: 'text/html; charset=utf-8',
+        mhtml: 'multipart/related',
+        mht: 'multipart/related',
+        js: 'application/javascript',
+        mjs: 'application/javascript',
+        css: 'text/css',
+        json: 'application/json',
+        xml: 'application/xml',
+        png: 'image/png',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        gif: 'image/gif',
+        svg: 'image/svg+xml',
+        webp: 'image/webp',
+        ico: 'image/x-icon',
+        bmp: 'image/bmp',
+        mp3: 'audio/mpeg',
+        ogg: 'audio/ogg',
+        wav: 'audio/wav',
+        flac: 'audio/flac',
+        aac: 'audio/aac',
+        m4a: 'audio/mp4',
+        mp4: 'video/mp4',
+        webm: 'video/webm',
+        ogv: 'video/ogg',
+        wasm: 'application/wasm',
+        ttf: 'font/ttf',
+        otf: 'font/otf',
+        woff: 'font/woff',
+        woff2: 'font/woff2',
+        txt: 'text/plain',
+        csv: 'text/csv',
+        data: 'application/octet-stream',
+        bin: 'application/octet-stream',
+      })[ext] ?? 'application/octet-stream';
+    }
+
+    // ── Read all files recursively from a directory handle ─────
+    async function readAllFiles(dirHandle, basePath = '', fileMap = {}, progress = { count: 0 }) {
+      try {
+        for await (const [name, handle] of dirHandle.entries()) {
+          const path = basePath ? `${basePath}/${name}` : name;
+          if (handle.kind === 'file') {
+            try {
+              const file = await handle.getFile();
+              fileMap[path] = file;
+              progress.count++;
+              if (progress.count % 10 === 0) {
+                statusText.textContent = `Reading files… (${progress.count})`;
+              }
+            } catch (e) {
+              console.warn('[GameVault] Could not read file:', path, e);
+            }
+          } else if (handle.kind === 'directory') {
+            await readAllFiles(handle, path, fileMap, progress);
           }
-        } catch (e) {
-          console.warn('[GameVault] Could not read file:', path, e);
         }
-      } else if (handle.kind === 'directory') {
-        await readAllFiles(handle, path, fileMap, progress);
+      } catch (e) {
+        console.warn('[GameVault] Could not read directory:', basePath, e);
       }
+      return fileMap;
     }
-  } catch (e) {
-    console.warn('[GameVault] Could not read directory:', basePath, e);
-  }
-  return fileMap;
-}
 
-// ── Read all files from <input> file list ─────────────────
-function readAllFilesFromInput(fileList) {
-  const fileMap = {};
-  for (const file of fileList) {
-    // webkitRelativePath gives "FolderName/sub/file.html"
-    // We strip the root folder name to get relative paths
-    let path = file.webkitRelativePath || file.name;
-    // Remove the leading root folder name
-    const slashIdx = path.indexOf('/');
-    if (slashIdx !== -1) {
-      path = path.substring(slashIdx + 1);
-    }
-    fileMap[path] = file;
-  }
-  return fileMap;
-}
-
-// ── Build blob URL map from file map ──────────────────────
-function buildBlobURLMap(fileMap) {
-  const map = {};
-  for (const [path, file] of Object.entries(fileMap)) {
-    const mime = getMimeType(path);
-    const blob = new Blob([file], { type: mime });
-    const url = URL.createObjectURL(blob);
-    map[path] = url;
-    blobURLs.push(url);
-  }
-  return map;
-}
-
-// ── Clean up blob URLs ────────────────────────────────────
-function cleanupBlobURLs() {
-  for (const url of blobURLs) {
-    URL.revokeObjectURL(url);
-  }
-  blobURLs = [];
-}
-
-// ── Resolve a relative path from a base path ─────────────
-function resolvePath(from, to) {
-  if (to.startsWith('/') || to.startsWith('http://') || to.startsWith('https://') || to.startsWith('data:') || to.startsWith('blob:') || to.startsWith('#') || to.startsWith('javascript:')) {
-    return null; // absolute or special — skip
-  }
-  // Get directory of "from"
-  const parts = from.split('/');
-  parts.pop(); // remove filename
-  const toParts = to.split('/');
-  for (const seg of toParts) {
-    if (seg === '..') parts.pop();
-    else if (seg !== '.' && seg !== '') parts.push(seg);
-  }
-  return parts.join('/');
-}
-
-// ── Rewrite HTML to use blob URLs ─────────────────────────
-async function buildGameBlob(htmlPath, fileMap, blobMap) {
-  const htmlFile = fileMap[htmlPath];
-  if (!htmlFile) return null;
-
-  let html = await htmlFile.text();
-
-  // Rewrite src="...", href="...", url("..."), url('...') references
-  html = html.replace(
-    /(src|href|poster|data|action)\s*=\s*["']([^"']*?)["']/gi,
-    (match, attr, value) => {
-      const resolved = resolvePath(htmlPath, value);
-      if (resolved && blobMap[resolved]) {
-        return `${attr}="${blobMap[resolved]}"`;
+    // ── Read all files from <input> file list ─────────────────
+    function readAllFilesFromInput(fileList) {
+      const fileMap = {};
+      for (const file of fileList) {
+        // webkitRelativePath gives "FolderName/sub/file.html"
+        // We strip the root folder name to get relative paths
+        let path = file.webkitRelativePath || file.name;
+        // Remove the leading root folder name
+        const slashIdx = path.indexOf('/');
+        if (slashIdx !== -1) {
+          path = path.substring(slashIdx + 1);
+        }
+        fileMap[path] = file;
       }
-      return match;
+      return fileMap;
     }
-  );
 
-  // Rewrite url() in CSS
-  html = html.replace(
-    /url\(\s*["']?([^"')]+?)["']?\s*\)/gi,
-    (match, value) => {
-      const resolved = resolvePath(htmlPath, value);
-      if (resolved && blobMap[resolved]) {
-        return `url("${blobMap[resolved]}")`;
+    // ── Build blob URL map from file map ──────────────────────
+    async function buildBlobURLMap(fileMap) {
+      const map = {};
+      for (const [path, file] of Object.entries(fileMap)) {
+        const mime = getMimeType(path);
+        // Read as ArrayBuffer for accurate blob creation
+        const buf = await file.arrayBuffer();
+        const blob = new Blob([buf], { type: mime });
+        const url = URL.createObjectURL(blob);
+        map[path] = url;
+        blobURLs.push(url);
       }
-      return match;
+      return map;
     }
-  );
 
-  // Inject helper script for dynamic resource loading
-  const helperScript = `
+    // ── Clean up blob URLs ────────────────────────────────────
+    function cleanupBlobURLs() {
+      for (const url of blobURLs) {
+        URL.revokeObjectURL(url);
+      }
+      blobURLs = [];
+    }
+
+    // ── Resolve a relative path from a base path ─────────────
+    function resolvePath(from, to) {
+      if (to.startsWith('/') || to.startsWith('http://') || to.startsWith('https://') || to.startsWith('data:') || to.startsWith('blob:') || to.startsWith('#') || to.startsWith('javascript:')) {
+        return null; // absolute or special — skip
+      }
+      // Get directory of "from"
+      const parts = from.split('/');
+      parts.pop(); // remove filename
+      const toParts = to.split('/');
+      for (const seg of toParts) {
+        if (seg === '..') parts.pop();
+        else if (seg !== '.' && seg !== '') parts.push(seg);
+      }
+      return parts.join('/');
+    }
+
+    // ── Rewrite HTML to use blob URLs ─────────────────────────
+    async function buildFileBlob(htmlPath, fileMap, blobMap) {
+      const htmlFile = fileMap[htmlPath];
+      if (!htmlFile) return null;
+
+      let html = await htmlFile.text();
+
+      // Rewrite src="...", href="...", url("..."), url('...') references
+      html = html.replace(
+        /(src|href|poster|data|action)\s*=\s*["']([^"']*?)["']/gi,
+        (match, attr, value) => {
+          const resolved = resolvePath(htmlPath, value);
+          if (resolved && blobMap[resolved]) {
+            return `${attr}="${blobMap[resolved]}"`;
+          }
+          return match;
+        }
+      );
+
+      // Rewrite url() in CSS
+      html = html.replace(
+        /url\(\s*["']?([^"')]+?)["']?\s*\)/gi,
+        (match, value) => {
+          const resolved = resolvePath(htmlPath, value);
+          if (resolved && blobMap[resolved]) {
+            return `url("${blobMap[resolved]}")`;
+          }
+          return match;
+        }
+      );
+
+      // Inject helper script for dynamic resource loading
+      const helperScript = `
 <script>
 (function() {
   const __blobMap = ${JSON.stringify(blobMap)};
@@ -752,273 +1183,396 @@ async function buildGameBlob(htmlPath, fileMap, blobMap) {
 <\/script>
 `;
 
-  if (html.includes('<head>')) {
-    html = html.replace('<head>', '<head>' + helperScript);
-  } else if (html.includes('<HEAD>')) {
-    html = html.replace('<HEAD>', '<HEAD>' + helperScript);
-  } else if (html.includes('<html>') || html.includes('<HTML>')) {
-    html = html.replace(/<html>/i, match => match + '<head>' + helperScript + '</head>');
-  } else {
-    html = helperScript + html;
-  }
-
-  const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  blobURLs.push(url);
-  return url;
-}
-
-// ── Open Folder ────────────────────────────────────────────
-openBtn.onclick = async () => {
-  // Always use <input webkitdirectory> — it's the most reliable
-  // across all browsers including Chromebooks
-  hiddenInput.value = '';
-  hiddenInput.click();
-};
-
-// Handle files from <input webkitdirectory>
-hiddenInput.addEventListener('change', async () => {
-  const files = hiddenInput.files;
-  if (!files || files.length === 0) return;
-
-  try {
-    // Get root folder name from the first file's path
-    const firstPath = files[0].webkitRelativePath || files[0].name;
-    const rootName = firstPath.split('/')[0] || 'Selected Folder';
-
-    folderName.textContent = rootName;
-    sidebarEmpty.style.display = 'none';
-    fileTree.style.display     = 'block';
-    fileTree.innerHTML         = '';
-
-    setStatus('ready', `Reading ${files.length} files…`);
-
-    // Build file map from input
-    inputFileMap = readAllFilesFromInput(files);
-    rootHandle = null; // clear directory handle since we're using input
-
-    console.log('[GameVault] Files loaded:', Object.keys(inputFileMap).length, 'files');
-    console.log('[GameVault] File paths:', Object.keys(inputFileMap));
-
-    // Build tree from flat file paths
-    renderTreeFromFileMap(inputFileMap, fileTree);
-
-    setStatus('ready', `📁 ${rootName} (${Object.keys(inputFileMap).length} files)`);
-    toast(`Opened: ${rootName} — ${Object.keys(inputFileMap).length} files`);
-  } catch (err) {
-    toast('Could not read folder: ' + err.message, true);
-    console.error('[GameVault] Error:', err);
-  }
-});
-
-// ── File Tree ──────────────────────────────────────────────
-const FILE_ICONS = {
-  html: '🎮', htm: '🎮',
-  js:   '📜', mjs: '📜', ts: '📜',
-  css:  '🎨',
-  json: '🗃️', xml: '🗃️',
-  png:  '🖼️', jpg: '🖼️', jpeg: '🖼️', gif: '🖼️', webp: '🖼️', svg: '🖼️',
-  mp3:  '🔊', ogg: '🔊', wav: '🔊', flac: '🔊', m4a: '🔊',
-  mp4:  '🎬', webm: '🎬',
-  wasm: '⚙️',
-  ttf:  '🔤', woff: '🔤', woff2: '🔤', otf: '🔤',
-  txt:  '📄', md:   '📄',
-};
-
-function getIcon(name, kind) {
-  if (kind === 'directory') return '📁';
-  const ext = name.split('.').pop().toLowerCase();
-  return FILE_ICONS[ext] || '📄';
-}
-
-function isPlayable(name) {
-  const ext = name.split('.').pop().toLowerCase();
-  return ext === 'html' || ext === 'htm';
-}
-
-// ── Build tree from a flat fileMap { "path/to/file": File } ──
-function renderTreeFromFileMap(fileMap, container) {
-  // Build a nested tree structure from flat paths
-  const tree = {};
-  for (const path of Object.keys(fileMap)) {
-    const parts = path.split('/');
-    let current = tree;
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      if (i === parts.length - 1) {
-        // It's a file
-        current[part] = { __isFile: true, __path: path };
+      if (html.includes('<head>')) {
+        html = html.replace('<head>', '<head>' + helperScript);
+      } else if (html.includes('<HEAD>')) {
+        html = html.replace('<HEAD>', '<HEAD>' + helperScript);
+      } else if (html.includes('<html>') || html.includes('<HTML>')) {
+        html = html.replace(/<html>/i, match => match + '<head>' + helperScript + '</head>');
       } else {
-        // It's a directory
-        if (!current[part] || current[part].__isFile) {
-          current[part] = {};
+        html = helperScript + html;
+      }
+
+      const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      blobURLs.push(url);
+      return url;
+    }
+
+    // ── Open Folder ────────────────────────────────────────────
+    openBtn.onclick = async () => {
+      // Always use <input webkitdirectory> — it's the most reliable
+      // across all browsers including Chromebooks
+      hiddenInput.value = '';
+      hiddenInput.click();
+    };
+
+    // Handle files from <input webkitdirectory>
+    hiddenInput.addEventListener('change', async () => {
+      const files = hiddenInput.files;
+      if (!files || files.length === 0) return;
+
+      try {
+        // Get root folder name from the first file's path
+        const firstPath = files[0].webkitRelativePath || files[0].name;
+        const rootName = firstPath.split('/')[0] || 'Selected Folder';
+
+        folderName.textContent = rootName;
+        sidebarEmpty.style.display = 'none';
+        fileTree.style.display = 'block';
+        fileTree.innerHTML = '';
+
+        setStatus('ready', `Reading ${files.length} files…`);
+
+        // Build file map from input
+        inputFileMap = readAllFilesFromInput(files);
+        rootHandle = null; // clear directory handle since we're using input
+
+        console.log('[FileVault] Files loaded:', Object.keys(inputFileMap).length, 'files');
+        console.log('[FileVault] File paths:', Object.keys(inputFileMap));
+
+        // Build tree from flat file paths
+        renderTreeFromFileMap(inputFileMap, fileTree);
+
+        setStatus('ready', `📁 ${rootName} (${Object.keys(inputFileMap).length} files)`);
+        toast(`Opened: ${rootName} — ${Object.keys(inputFileMap).length} files`);
+      } catch (err) {
+        toast('Could not read folder: ' + err.message, true);
+        console.error('[FileVault] Error:', err);
+      }
+    });
+
+    // ── File Tree ──────────────────────────────────────────────
+    const FILE_ICONS = {
+      html: '📂', htm: '📂',
+      mhtml: '🌐', mht: '🌐',
+      js: '📜', mjs: '📜', ts: '📜',
+      css: '🎨',
+      json: '🗃️', xml: '🗃️',
+      png: '🖼️', jpg: '🖼️', jpeg: '🖼️', gif: '🖼️', webp: '🖼️', svg: '🖼️',
+      mp3: '🔊', ogg: '🔊', wav: '🔊', flac: '🔊', m4a: '🔊', aac: '🔊',
+      mp4: '🎬', webm: '🎬', ogv: '🎬',
+      wasm: '⚙️',
+      ttf: '🔤', woff: '🔤', woff2: '🔤', otf: '🔤',
+      txt: '📄', md: '📄',
+    };
+
+    function getIcon(name, kind) {
+      if (kind === 'directory') return '📁';
+      const ext = name.split('.').pop().toLowerCase();
+      return FILE_ICONS[ext] || '📄';
+    }
+
+    const PLAYABLE_EXTS = new Set([
+      'html', 'htm', 'mhtml', 'mht',
+      'mp3', 'ogg', 'wav', 'flac', 'aac', 'm4a',
+      'mp4', 'webm', 'ogv',
+    ]);
+
+    function isPlayable(name) {
+      const ext = name.split('.').pop().toLowerCase();
+      return PLAYABLE_EXTS.has(ext);
+    }
+
+    function getFileCategory(name) {
+      const ext = name.split('.').pop().toLowerCase();
+      if (ext === 'html' || ext === 'htm') return 'html';
+      if (ext === 'mhtml' || ext === 'mht') return 'mhtml';
+      if (['mp3', 'ogg', 'wav', 'flac', 'aac', 'm4a'].includes(ext)) return 'audio';
+      if (['mp4', 'webm', 'ogv'].includes(ext)) return 'video';
+      return 'other';
+    }
+
+    // ── Build tree from a flat fileMap { "path/to/file": File } ──
+    function renderTreeFromFileMap(fileMap, container) {
+      // Build a nested tree structure from flat paths
+      const tree = {};
+      for (const path of Object.keys(fileMap)) {
+        const parts = path.split('/');
+        let current = tree;
+        for (let i = 0; i < parts.length; i++) {
+          const part = parts[i];
+          if (i === parts.length - 1) {
+            // It's a file
+            current[part] = { __isFile: true, __path: path };
+          } else {
+            // It's a directory
+            if (!current[part] || current[part].__isFile) {
+              current[part] = {};
+            }
+            current = current[part];
+          }
         }
-        current = current[part];
+      }
+
+      // Render the tree recursively
+      renderTreeLevel(tree, container, 0);
+    }
+
+    function renderTreeLevel(treeObj, container, depth) {
+      // Separate directories and files, then sort each group
+      const entries = Object.keys(treeObj).sort((a, b) => {
+        const aIsDir = !treeObj[a].__isFile;
+        const bIsDir = !treeObj[b].__isFile;
+        if (aIsDir !== bIsDir) return aIsDir ? -1 : 1;
+        return a.localeCompare(b);
+      });
+
+      for (const name of entries) {
+        const entry = treeObj[name];
+        const isFile = entry.__isFile;
+        const kind = isFile ? 'file' : 'directory';
+
+        const node = document.createElement('div');
+        node.className = 'tree-node';
+
+        const row = document.createElement('div');
+        row.className = 'tree-row';
+        if (isFile) row.dataset.path = entry.__path;
+        row.style.paddingLeft = `${depth * 14 + 8}px`;
+
+        const chevron = document.createElement('span');
+        chevron.className = 'tree-chevron';
+        chevron.innerHTML = !isFile ? '▶' : '';
+
+        const iconEl = document.createElement('span');
+        iconEl.className = 'tree-icon';
+        iconEl.textContent = getIcon(name, kind);
+
+        const label = document.createElement('span');
+        label.className = 'tree-label' + (isFile && isPlayable(name) ? ' playable' : '');
+        label.textContent = name;
+
+        row.append(chevron, iconEl, label);
+        node.appendChild(row);
+
+        if (!isFile) {
+          const children = document.createElement('div');
+          children.className = 'tree-children open';
+          node.appendChild(children);
+          chevron.classList.add('open');
+
+          // Render children immediately
+          renderTreeLevel(entry, children, depth + 1);
+
+          row.addEventListener('click', () => {
+            const open = children.classList.toggle('open');
+            chevron.classList.toggle('open', open);
+          });
+        } else {
+          row.addEventListener('click', () => {
+            activeRow?.classList.remove('active');
+            activeRow = row;
+            row.classList.add('active');
+          });
+
+          row.addEventListener('dblclick', () => launchFile(name, entry.__path));
+        }
+
+        container.appendChild(node);
       }
     }
-  }
 
-  // Render the tree recursively
-  renderTreeLevel(tree, container, 0);
-}
-
-function renderTreeLevel(treeObj, container, depth) {
-  // Separate directories and files, then sort each group
-  const entries = Object.keys(treeObj).sort((a, b) => {
-    const aIsDir = !treeObj[a].__isFile;
-    const bIsDir = !treeObj[b].__isFile;
-    if (aIsDir !== bIsDir) return aIsDir ? -1 : 1;
-    return a.localeCompare(b);
-  });
-
-  for (const name of entries) {
-    const entry = treeObj[name];
-    const isFile = entry.__isFile;
-    const kind = isFile ? 'file' : 'directory';
-
-    const node = document.createElement('div');
-    node.className = 'tree-node';
-
-    const row = document.createElement('div');
-    row.className = 'tree-row';
-    if (isFile) row.dataset.path = entry.__path;
-    row.style.paddingLeft = `${depth * 14 + 8}px`;
-
-    const chevron = document.createElement('span');
-    chevron.className = 'tree-chevron';
-    chevron.innerHTML = !isFile ? '▶' : '';
-
-    const iconEl = document.createElement('span');
-    iconEl.className = 'tree-icon';
-    iconEl.textContent = getIcon(name, kind);
-
-    const label = document.createElement('span');
-    label.className = 'tree-label' + (isFile && isPlayable(name) ? ' playable' : '');
-    label.textContent = name;
-
-    row.append(chevron, iconEl, label);
-    node.appendChild(row);
-
-    if (!isFile) {
-      const children = document.createElement('div');
-      children.className = 'tree-children open';
-      node.appendChild(children);
-      chevron.classList.add('open');
-
-      // Render children immediately
-      renderTreeLevel(entry, children, depth + 1);
-
-      row.addEventListener('click', () => {
-        const open = children.classList.toggle('open');
-        chevron.classList.toggle('open', open);
-      });
-    } else {
-      row.addEventListener('click', () => {
-        activeRow?.classList.remove('active');
-        activeRow = row;
-        row.classList.add('active');
-      });
-
-      row.addEventListener('dblclick', () => launchGame(name, entry.__path));
+    // ── Hide all content panels ────────────────────────────────
+    function hideAllPanels() {
+      welcome.style.display = 'none';
+      fileRunner.style.display = 'none';
+      // Remove any previous media player
+      const prev = document.getElementById('media-player');
+      if (prev) prev.remove();
     }
 
-    container.appendChild(node);
-  }
-}
+    // ── Build media player panel ──────────────────────────────
+    function buildMediaPlayer(name, blobURL, category) {
+      const panel = document.createElement('div');
+      panel.id = 'media-player';
 
-// ── Launch Game ────────────────────────────────────────────
-async function launchGame(name, path) {
-  if (!rootHandle && !inputFileMap) { toast('Open a folder first.', true); return; }
-  if (!isPlayable(name)) { toast('Only HTML files can be launched.', true); return; }
+      const ext = name.split('.').pop().toUpperCase();
 
-  // Show progress
-  setStatus('ready', `Loading ${name}…`);
-  progressBar.style.width = '10%';
+      if (category === 'audio') {
+        // Spinning disc artwork
+        panel.innerHTML = `
+          <div class="media-artwork">
+            <div class="disc" id="audio-disc">
+              <div class="disc-hole"></div>
+            </div>
+          </div>
+          <div class="media-filename">${name}</div>
+          <div class="media-type-badge">🔊 ${ext} Audio</div>
+          <audio id="media-el" controls autoplay src="${blobURL}"></audio>
+        `;
+        // Start/stop disc spin based on play state
+        setTimeout(() => {
+          const audioEl = document.getElementById('media-el');
+          const disc = document.getElementById('audio-disc');
+          if (audioEl && disc) {
+            disc.classList.add('spinning');
+            audioEl.addEventListener('play', () => disc.classList.add('spinning'));
+            audioEl.addEventListener('pause', () => disc.classList.remove('spinning'));
+            audioEl.addEventListener('ended', () => disc.classList.remove('spinning'));
+          }
+        }, 0);
+      } else if (category === 'video') {
+        panel.innerHTML = `
+          <div class="media-filename">${name}</div>
+          <div class="media-type-badge">🎬 ${ext} Video</div>
+          <video id="media-el" controls autoplay src="${blobURL}"></video>
+        `;
+      }
 
-  try {
-    // Clean up previous blob URLs
-    cleanupBlobURLs();
-
-    // Step 1: Read all files from the root directory (or use inputFileMap)
-    progressBar.style.width = '20%';
-    const fileMap = inputFileMap ? inputFileMap : await readAllFiles(rootHandle);
-    progressBar.style.width = '50%';
-
-    // Step 2: Create blob URLs for every file
-    const blobMap = buildBlobURLMap(fileMap);
-    progressBar.style.width = '70%';
-
-    // Step 3: Create the game HTML with rewritten paths
-    const gameBlobURL = await buildGameBlob(path, fileMap, blobMap);
-    progressBar.style.width = '90%';
-
-    if (!gameBlobURL) {
-      toast(`Could not find ${path}`, true);
-      progressBar.style.width = '0%';
-      return;
+      return panel;
     }
 
-    // Step 4: Load it in the iframe
-    currentGame = { name, path };
-    gameTitle.textContent = `🎮 ${path}`;
-    welcome.style.display    = 'none';
-    gameRunner.style.display = 'flex';
+    // ── Launch File / Media ────────────────────────────────────
+    async function launchFile(name, path) {
+      if (!rootHandle && !inputFileMap) { toast('Open a folder first.', true); return; }
+      if (!isPlayable(name)) { toast('This file type is not supported.', true); return; }
 
-    gameFrame.src = gameBlobURL;
+      const category = getFileCategory(name);
 
-    progressBar.style.width = '100%';
-    setTimeout(() => { progressBar.style.width = '0%'; }, 500);
+      // Show progress
+      setStatus('ready', `Loading ${name}…`);
+      progressBar.style.width = '10%';
 
-    setStatus('ready', `Running: ${name}`);
-    toast(`Launched: ${name}`);
+      try {
+        // Clean up previous blob URLs
+        cleanupBlobURLs();
 
-  } catch (err) {
-    toast('Failed to load game: ' + err.message, true);
-    console.error('[GameVault] Launch error:', err);
-    progressBar.style.width = '0%';
-    setStatus('error', 'Launch failed');
-  }
-}
+        if (category === 'html') {
+          // ── HTML flow: rewrite paths & run in iframe ──────
+          progressBar.style.width = '20%';
+          const fileMap = inputFileMap ? inputFileMap : await readAllFiles(rootHandle);
+          progressBar.style.width = '50%';
 
-// ── Game Controls ──────────────────────────────────────────
-$('refresh-btn').addEventListener('click', async () => {
-  if (currentGame) {
-    await launchGame(currentGame.name, currentGame.path);
-  }
-});
+          const blobMap = await buildBlobURLMap(fileMap);
+          progressBar.style.width = '70%';
 
-$('fullscreen-btn').addEventListener('click', () => {
-  if (gameFrame.requestFullscreen) gameFrame.requestFullscreen();
-});
+          const fileBlobURL = await buildFileBlob(path, fileMap, blobMap);
+          progressBar.style.width = '90%';
 
-$('close-btn').addEventListener('click', () => {
-  gameFrame.src = 'about:blank';
-  gameRunner.style.display = 'none';
-  welcome.style.display    = 'flex';
-  gameTitle.textContent    = 'No game loaded';
-  currentGame = null;
-  cleanupBlobURLs();
-  setStatus('ready', 'Ready');
-});
+          if (!fileBlobURL) {
+            toast(`Could not find ${path}`, true);
+            progressBar.style.width = '0%';
+            return;
+          }
 
-// Keyboard shortcuts
-document.addEventListener('keydown', e => {
-  if (!currentGame) return;
-  if (e.target.tagName === 'INPUT') return;
-  if (e.key === 'r' || e.key === 'R') $('refresh-btn').click();
-  if (e.key === 'f' || e.key === 'F') $('fullscreen-btn').click();
-});
+          currentFile = { name, path };
+          fileTitle.textContent = `📂 ${path}`;
+          hideAllPanels();
+          fileRunner.style.display = 'flex';
+          fileFrame.src = fileBlobURL;
 
-// ── Toast ──────────────────────────────────────────────────
-let toastTimer;
-function toast(msg, isErr = false) {
-  const el = $('toast');
-  el.textContent = (isErr ? '⚠️ ' : '✓ ') + msg;
-  el.style.borderColor = isErr ? 'rgba(248,113,113,.4)' : 'rgba(52,211,153,.3)';
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
-}
-</script>
+        } else if (category === 'mhtml') {
+          // ── MHTML flow: load raw file into iframe ─────────
+          progressBar.style.width = '40%';
+          const fileMap = inputFileMap ? inputFileMap : await readAllFiles(rootHandle);
+          const file = fileMap[path];
+          if (!file) {
+            toast(`Could not find ${path}`, true);
+            progressBar.style.width = '0%';
+            return;
+          }
+          progressBar.style.width = '70%';
+
+          // Create a blob URL for the MHTML file
+          const buf = await file.arrayBuffer();
+          const blob = new Blob([buf], { type: 'multipart/related' });
+          const mhtmlURL = URL.createObjectURL(blob);
+          blobURLs.push(mhtmlURL);
+          progressBar.style.width = '90%';
+
+          currentFile = { name, path };
+          fileTitle.textContent = `🌐 ${path}`;
+          hideAllPanels();
+          fileRunner.style.display = 'flex';
+          fileFrame.src = mhtmlURL;
+
+        } else if (category === 'audio' || category === 'video') {
+          // ── Media flow: play in built-in player ──────────
+          progressBar.style.width = '40%';
+          const fileMap = inputFileMap ? inputFileMap : await readAllFiles(rootHandle);
+          const file = fileMap[path];
+          if (!file) {
+            toast(`Could not find ${path}`, true);
+            progressBar.style.width = '0%';
+            return;
+          }
+          progressBar.style.width = '70%';
+
+          const mime = getMimeType(path);
+          const buf = await file.arrayBuffer();
+          const blob = new Blob([buf], { type: mime });
+          const mediaURL = URL.createObjectURL(blob);
+          blobURLs.push(mediaURL);
+          progressBar.style.width = '90%';
+
+          currentFile = { name, path };
+          hideAllPanels();
+
+          const player = buildMediaPlayer(name, mediaURL, category);
+          $('content').appendChild(player);
+
+        } else {
+          toast('Unsupported file type.', true);
+          progressBar.style.width = '0%';
+          return;
+        }
+
+        progressBar.style.width = '100%';
+        setTimeout(() => { progressBar.style.width = '0%'; }, 500);
+
+        const icon = category === 'audio' ? '🔊' : category === 'video' ? '🎬' : category === 'mhtml' ? '🌐' : '📂';
+        setStatus('ready', `${icon} Playing: ${name}`);
+        toast(`Launched: ${name}`);
+
+      } catch (err) {
+        toast('Failed to load: ' + err.message, true);
+        console.error('[FileVault] Launch error:', err);
+        progressBar.style.width = '0%';
+        setStatus('error', 'Launch failed');
+      }
+    }
+
+    // ── File Controls ──────────────────────────────────────────
+    $('refresh-btn').addEventListener('click', async () => {
+      if (currentFile) {
+        await launchFile(currentFile.name, currentFile.path);
+      }
+    });
+
+    $('fullscreen-btn').addEventListener('click', () => {
+      if (fileFrame.requestFullscreen) fileFrame.requestFullscreen();
+    });
+
+    $('close-btn').addEventListener('click', () => {
+      fileFrame.src = 'about:blank';
+      hideAllPanels();
+      welcome.style.display = 'flex';
+      fileTitle.textContent = 'No file loaded';
+      currentFile = null;
+      cleanupBlobURLs();
+      setStatus('ready', 'Ready');
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      if (!currentFile) return;
+      if (e.target.tagName === 'INPUT') return;
+      if (e.key === 'r' || e.key === 'R') $('refresh-btn').click();
+      if (e.key === 'f' || e.key === 'F') $('fullscreen-btn').click();
+    });
+
+    // ── Toast ──────────────────────────────────────────────────
+    let toastTimer;
+    function toast(msg, isErr = false) {
+      const el = $('toast');
+      el.textContent = (isErr ? '⚠️ ' : '✓ ') + msg;
+      el.style.borderColor = isErr ? 'rgba(248,113,113,.4)' : 'rgba(52,211,153,.3)';
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+    }
+  </script>
 </body>
+
 </html>
